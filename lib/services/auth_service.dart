@@ -20,9 +20,10 @@ class AuthService {
   }
 
   // sign up with email and password
-  Future<void> signUpWithEmailAndPassword({required String email, required String password, required String displayName}) async {
-    await _auth.createUserWithEmailAndPassword(email: email, password: password);
+  Future<UserCredential> signUpWithEmailAndPassword({required String email, required String password, required String displayName}) async {
+    final userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
     await updateDisplayName(displayName: displayName);
+    return userCredential;
   }
 
   // update display name

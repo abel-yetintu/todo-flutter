@@ -27,4 +27,8 @@ extension Validators on String {
   bool get isValidName {
     return this != "";
   }
+
+  bool get isValidUserName {
+    return this != "";
+  }
 }

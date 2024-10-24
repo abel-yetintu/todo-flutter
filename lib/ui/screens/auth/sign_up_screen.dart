@@ -17,6 +17,7 @@ class SignUpScreen extends ConsumerStatefulWidget {
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameTextEditingController;
+  late TextEditingController _userNameTextEditingController;
   late TextEditingController _emailTextEditingController;
   late TextEditingController _passwordTextEditingController;
   late TextEditingController _confirmPasswordTextEditingController;
@@ -25,6 +26,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   void initState() {
     super.initState();
     _nameTextEditingController = TextEditingController();
+    _userNameTextEditingController = TextEditingController();
     _emailTextEditingController = TextEditingController();
     _passwordTextEditingController = TextEditingController();
     _confirmPasswordTextEditingController = TextEditingController();
@@ -33,6 +35,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   void dispose() {
     _nameTextEditingController.dispose();
+    _userNameTextEditingController.dispose();
     _emailTextEditingController.dispose();
     _passwordTextEditingController.dispose();
     _confirmPasswordTextEditingController.dispose();
@@ -84,6 +87,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             return null;
                           } else {
                             return "Enter a valid name";
+                          }
+                        },
+                      ),
+                      addVerticalSpace(context.screenHeight * 0.03),
+                      const Text(
+                        'User Name',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      addVerticalSpace(context.screenHeight * 0.01),
+                      TextFormField(
+                        controller: _userNameTextEditingController,
+                        onTapOutside: (event) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
+                        decoration: const InputDecoration(hintText: 'john.doe'),
+                        validator: (value) {
+                          if (value!.isValidUserName) {
+                            return null;
+                          } else {
+                            return "Enter a valid user name";
                           }
                         },
                       ),
@@ -195,8 +218,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     if (_formKey.currentState!.validate()) {
                       ref.read(signUpButtonControllerProvier.notifier).signUp(
                             email: _emailTextEditingController.text.trim(),
+                            userName: _userNameTextEditingController.text.trim(),
                             password: _passwordTextEditingController.text.trim(),
-                            name: _nameTextEditingController.text.trim(),
+                            fullName: _nameTextEditingController.text.trim(),
                           );
                     }
                   },

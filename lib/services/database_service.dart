@@ -35,4 +35,27 @@ class DatabaseService {
     final documentReference = await _userNamesCollection.doc(userName).get();
     return documentReference.exists;
   }
+
+  Stream<TodoUser?> getUser({required String uid}) {
+    return _usersCollection.doc(uid).snapshots().map((snapshot) => snapshot.data());
+  }
+
+  Future<void> updateUser({required TodoUser todoUser}) async {
+    await _usersCollection.doc(todoUser.uid).set(todoUser);
+  }
+
+  Future<void> deleteUser({required TodoUser todoUser}) async {
+    final batch = _firestore.batch();
+
+    // delete user document
+    final DocumentReference<TodoUser> userDocRef = _usersCollection.doc(todoUser.uid);
+    batch.delete(userDocRef);
+
+    // delete user name from user names collection
+
+    final DocumentReference userNameDocRef = _userNamesCollection.doc(todoUser.userName);
+    batch.delete(userNameDocRef);
+
+    batch.commit();
+  }
 }

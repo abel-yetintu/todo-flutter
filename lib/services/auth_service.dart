@@ -46,4 +46,21 @@ class AuthService {
   Future<void> resetPassword({required String email}) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
+
+  // re-authenticate user
+  Future<UserCredential> reAuthenticateUser({required String password}) async {
+    final credential = EmailAuthProvider.credential(email: currentUser!.email!, password: password);
+    final result = await currentUser!.reauthenticateWithCredential(credential);
+    return result;
+  }
+
+  // delete user
+  Future<void> deleteUser() async {
+    await _auth.currentUser!.delete();
+  }
+
+  // update email
+  Future<void> updateEmail({required String newEmail}) async {
+    await currentUser!.verifyBeforeUpdateEmail(newEmail);
+  }
 }

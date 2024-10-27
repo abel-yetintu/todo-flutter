@@ -4,12 +4,16 @@ import 'package:todo/auth_wrapper.dart';
 import 'package:todo/core/dependecy_injection.dart';
 import 'package:todo/core/utils/extensions.dart';
 import 'package:todo/core/utils/helper_widgets.dart';
+import 'package:todo/data/models/todo.dart';
 import 'package:todo/services/navigation_service.dart';
+import 'package:todo/ui/screens/add_collaborator_screen.dart';
 import 'package:todo/ui/screens/auth/forgot_password_screen.dart';
 import 'package:todo/ui/screens/auth/sign_up_screen.dart';
+import 'package:todo/ui/screens/todo_detail_screen.dart';
 
 class RouteGenerator {
   static Route<dynamic> generateRoutes(RouteSettings settings) {
+    final args = settings.arguments;
     switch (settings.name) {
       case '/':
         return MaterialPageRoute(builder: (context) => const AuthWrapper());
@@ -17,6 +21,26 @@ class RouteGenerator {
         return MaterialPageRoute(builder: (context) => const SignUpScreen());
       case '/forgotPassword':
         return MaterialPageRoute(builder: (context) => const ForgotPasswordScreen());
+      case '/todoDetail':
+        if (args is String) {
+          return MaterialPageRoute(
+            builder: (context) => TodoDetailScreen(
+              id: args,
+            ),
+          );
+        } else {
+          return _errorRoute(settings);
+        }
+      case '/addCollaborator':
+        if (args is Todo) {
+          return MaterialPageRoute(
+            builder: (context) => AddCollaboratorScreen(
+              todo: args,
+            ),
+          );
+        } else {
+          return _errorRoute(settings);
+        }
       default:
         return _errorRoute(settings);
     }

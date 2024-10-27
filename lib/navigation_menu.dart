@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:todo/core/utils/extensions.dart';
 import 'package:todo/providers/providers.dart';
 import 'package:todo/ui/screens/profile_screen.dart';
+import 'package:todo/ui/screens/todo_screen.dart';
 
 class NavigationMenu extends ConsumerWidget {
   const NavigationMenu({super.key});
@@ -12,7 +13,7 @@ class NavigationMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final List<Widget> screens = [
-      const Center(child: Text('Todos Screen')),
+      const TodoScreen(),
       const Center(child: Text('Chat Screen')),
       const ProfileScreen(),
     ];
@@ -20,7 +21,10 @@ class NavigationMenu extends ConsumerWidget {
     return ref.watch(todoUserProvider).when(
           loading: () => _loadingUI(context),
           error: (error, stackTrace) => _errorUI(error),
-          data: (data) {
+          data: (todoUser) {
+            if (todoUser == null) {
+              return _loadingUI(context);
+            }
             return Scaffold(
               body: SafeArea(child: screens[ref.watch(navigationMenuIndexProvider)]),
               bottomNavigationBar: NavigationBar(

@@ -127,6 +127,14 @@ class AppTheme {
         canvasColor: colorScheme.surface,
         inputDecorationTheme: _inputDecorationTheme(colorScheme),
         filledButtonTheme: _filledButtonTheme(colorScheme),
+        bottomSheetTheme: const BottomSheetThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+            ),
+          ),
+        ),
       );
 
   InputDecorationTheme _inputDecorationTheme(ColorScheme colorScheme) {

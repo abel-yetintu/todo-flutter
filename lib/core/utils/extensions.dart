@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 extension BuildContextExtensions on BuildContext {
   ThemeData get theme => Theme.of(this);
@@ -30,5 +31,11 @@ extension Validators on String {
 
   bool get isValidUserName {
     return this != "";
+  }
+}
+
+extension DateTimeExtension on DateTime {
+  String getMonthDay() {
+    return DateFormat.MMMd().format(this);
   }
 }

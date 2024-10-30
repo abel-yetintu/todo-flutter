@@ -49,3 +49,8 @@ final todoProvider = StreamProvider.family((ref, String id) {
 final isTodosGridViewProvider = StateProvider((ref) => true);
 
 final todoFilterProvider = StateProvider((ref) => TodoFilter.all);
+
+final conversationsProvider = StreamProvider((ref) {
+  final todoUser = ref.watch(todoUserProvider).value!;
+  return getIt<DatabaseService>().getConverstations(uid: todoUser.uid);
+});

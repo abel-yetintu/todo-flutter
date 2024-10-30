@@ -4,6 +4,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:todo/core/utils/extensions.dart';
 import 'package:todo/providers/providers.dart';
+import 'package:todo/ui/screens/chat_screen.dart';
 import 'package:todo/ui/screens/profile_screen.dart';
 import 'package:todo/ui/screens/todo_screen.dart';
 
@@ -14,7 +15,7 @@ class NavigationMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final List<Widget> screens = [
       const TodoScreen(),
-      const Center(child: Text('Chat Screen')),
+      const ChatScreen(),
       const ProfileScreen(),
     ];
 
@@ -26,6 +27,7 @@ class NavigationMenu extends ConsumerWidget {
               return _loadingUI(context);
             }
             return Scaffold(
+              resizeToAvoidBottomInset: false,
               body: SafeArea(child: screens[ref.watch(navigationMenuIndexProvider)]),
               bottomNavigationBar: NavigationBar(
                 selectedIndex: ref.watch(navigationMenuIndexProvider),

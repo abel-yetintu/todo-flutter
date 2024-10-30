@@ -54,4 +54,15 @@ class TodoUser {
       profilePicture: data['profilePicture'] as String,
     );
   }
+
+  factory TodoUser.fromMap(Map<String, dynamic> map) {
+    return TodoUser(
+      uid: map['uid'] as String,
+      email: map['email'] as String,
+      userName: map['userName'] as String,
+      fullName: map['fullName'] as String,
+      profilePicture: map['profilePicture'] as String,
+    );
+  }
+
 }

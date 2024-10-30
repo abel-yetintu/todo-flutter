@@ -38,4 +38,48 @@ extension DateTimeExtension on DateTime {
   String getMonthDay() {
     return DateFormat.MMMd().format(this);
   }
+
+  String getTime() {
+    final dateFormat = DateFormat.jm();
+    return dateFormat.format(this).toLowerCase();
+  }
+
+  bool get isToday {
+    final now = DateTime.now();
+    return now.day == day && now.month == month && now.year == year;
+  }
+
+  bool get isYesterday {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    return yesterday.day == day && yesterday.month == month && yesterday.year == year;
+  }
+
+  String getFormattedConversationTime() {
+    if (isToday) {
+      return DateFormat.jm().format(this).toLowerCase();
+    }
+    final now = DateTime.now();
+    if (year != now.year) {
+      final dateFormat = DateFormat.yMMMd();
+      return dateFormat.format(this);
+    }
+    final dateFormat = DateFormat.MMMd();
+    return dateFormat.format(this);
+  }
+
+  String getFormattedDate() {
+    if (isToday) {
+      return 'Today';
+    }
+    if (isYesterday) {
+      return 'Yesterday';
+    }
+    final now = DateTime.now();
+    if (year != now.year) {
+      final dateFormat = DateFormat.yMMMd();
+      return dateFormat.format(this);
+    }
+    final dateFormat = DateFormat.MMMd();
+    return dateFormat.format(this);
+  }
 }

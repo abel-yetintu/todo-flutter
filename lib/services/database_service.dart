@@ -1,45 +1,38 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:todo/data/models/conversation.dart';
+import 'package:todo/data/models/message.dart';
 import 'package:todo/data/models/todo.dart';
 import 'package:todo/data/models/todo_user.dart';
 
 class DatabaseService {
   final _firestore = FirebaseFirestore.instance;
   late final CollectionReference<TodoUser> _usersCollection;
-  late final CollectionReference _userNamesCollection;
   late final CollectionReference<Todo> _todosCollection;
+  late final CollectionReference<Conversation> _conversationsCollection;
 
   DatabaseService() {
     _usersCollection = _firestore.collection('users').withConverter(
           fromFirestore: (snapshot, options) => TodoUser.fromFirestore(snapshot, options),
           toFirestore: (todoUser, _) => todoUser.toFirestore(),
         );
-    _userNamesCollection = _firestore.collection('userNames');
     _todosCollection = _firestore.collection('todos').withConverter(
           fromFirestore: (snapshot, options) => Todo.fromFirestore(snapshot, options),
           toFirestore: (todo, _) => todo.toFirestore(),
         );
+    _conversationsCollection = _firestore.collection('conversations').withConverter(
+          fromFirestore: (snapshot, options) => Conversation.fromFirestore(snapshot, options),
+          toFirestore: (conversation, _) => conversation.toFirestore(),
+        );
   }
 
   Future<void> createUserDocument({required TodoUser todoUser}) async {
-    final batch = _firestore.batch();
-
-    // set username in userNames collection
-    DocumentReference userNameRef = _userNamesCollection.doc(todoUser.userName);
-    batch.set(
-      userNameRef,
-      {'uid': todoUser.uid, 'userName': todoUser.userName},
-    );
-
-    // add user to users collection
     final userRef = _usersCollection.doc(todoUser.uid);
-    batch.set<TodoUser>(userRef, todoUser);
-
-    batch.commit();
+    await userRef.set(todoUser);
   }
 
   Future<bool> isUserNameTaken({required String userName}) async {
-    final documentReference = await _userNamesCollection.doc(userName).get();
-    return documentReference.exists;
+    final documentReference = await _usersCollection.where('userName', isEqualTo: userName).limit(1).get();
+    return documentReference.docs.isNotEmpty;
   }
 
   Stream<TodoUser?> getUser({required String uid}) {
@@ -47,22 +40,62 @@ class DatabaseService {
   }
 
   Future<void> updateUser({required TodoUser todoUser}) async {
-    await _usersCollection.doc(todoUser.uid).set(todoUser);
+    await _firestore.runTransaction((Transaction transaction) async {
+      // update user document in users collection
+      var userReference = _usersCollection.doc(todoUser.uid);
+      transaction.update(userReference, todoUser.toFirestore());
+
+      // update every conversation document where user is a participant
+      var docs = (await _conversationsCollection.where('participantsUid', arrayContains: todoUser.uid).get()).docs;
+      var conversations = docs.map((doc) => doc.data()).toList();
+      var updatedConversations = conversations.map((conversation) {
+        var otherUser = conversation.participants.singleWhere((user) => user.uid != todoUser.uid);
+        return conversation.copyWith(participants: [todoUser, otherUser]);
+      }).toList();
+
+      for (var conversation in updatedConversations) {
+        var documentReference = _conversationsCollection.doc(conversation.documentId);
+        transaction.update(documentReference, conversation.toFirestore());
+      }
+    });
   }
 
   Future<void> deleteUser({required TodoUser todoUser}) async {
-    final batch = _firestore.batch();
+    await _firestore.runTransaction((Transaction transaction) async {
+      // delete user document from users collection
+      var userReference = _usersCollection.doc(todoUser.uid);
+      transaction.delete(userReference);
 
-    // delete user document
-    final DocumentReference<TodoUser> userDocRef = _usersCollection.doc(todoUser.uid);
-    batch.delete(userDocRef);
+      // delete every conversation of this user
+      var docs = (await _conversationsCollection.where('participantsUid', arrayContains: todoUser.uid).get()).docs;
+      var conversations = docs.map((doc) => doc.data()).toList();
 
-    // delete user name from user names collection
+      for (var conversation in conversations) {
+        var documentReference = _conversationsCollection.doc(conversation.documentId);
+        transaction.delete(documentReference);
+      }
 
-    final DocumentReference userNameDocRef = _userNamesCollection.doc(todoUser.userName);
-    batch.delete(userNameDocRef);
+      // delete every todo owned by this user
+      var todoDocs = (await _todosCollection.where('owner', isEqualTo: todoUser.userName).get()).docs;
+      var todos = todoDocs.map((todoDoc) => todoDoc.data()).toList();
 
-    batch.commit();
+      for (var todo in todos) {
+        var documentReference = _todosCollection.doc(todo.id);
+        transaction.delete(documentReference);
+      }
+
+      // remove this user form every todo they collaborated on
+      var collaboratedOnTodosDocs = (await _todosCollection.where('collaborators', arrayContains: todoUser.userName).get()).docs;
+      var collaboratedOnTodos = collaboratedOnTodosDocs.map((todoDoc) => todoDoc.data()).toList();
+      var collaborationRemovedTodos = collaboratedOnTodos.map((collaboratedOnTodo) {
+        return collaboratedOnTodo.copyWith(collaborators: collaboratedOnTodo.collaborators.where((userName) => userName != todoUser.userName).toList());
+      }).toList();
+
+      for (var collaborationRemovedTodo in collaborationRemovedTodos) {
+        var documentReference = _todosCollection.doc(collaborationRemovedTodo.id);
+        transaction.update(documentReference, collaborationRemovedTodo.toFirestore());
+      }
+    });
   }
 
   Stream<List<Todo>> getTodos({required String userName}) {
@@ -114,6 +147,63 @@ class DatabaseService {
   Future<void> addCollaborator({required String todoId, required String userName}) async {
     await _todosCollection.doc(todoId).update({
       "collaborators": FieldValue.arrayUnion([userName]),
+    });
+  }
+
+  Stream<List<Conversation>> getConverstations({required String uid}) {
+    return _conversationsCollection.where('participantsUid', arrayContains: uid).orderBy('lastMessage.timestamp', descending: true).snapshots().map(
+      (querySnapshot) {
+        return querySnapshot.docs.map(
+          (documentSnapshot) {
+            return documentSnapshot.data();
+          },
+        ).toList();
+      },
+    );
+  }
+
+  Stream<List<Message>> getMessages({required String conversationId}) {
+    final messagesRef = _conversationsCollection.doc(conversationId).collection('messages').withConverter(
+          fromFirestore: (snapshot, options) => Message.fromFirestore(snapshot, options),
+          toFirestore: (message, options) => message.toFirestore(),
+        );
+    return messagesRef.snapshots().map((querySnapshot) {
+      return querySnapshot.docs.map((doc) {
+        return doc.data();
+      }).toList();
+    });
+  }
+
+  Future<void> sendMessage({required Conversation conversation, required Message message}) async {
+    final batch = _firestore.batch();
+
+    final conversationRef = _conversationsCollection.doc(conversation.documentId);
+    batch.set<Conversation>(conversationRef, conversation);
+
+    final messageRef = _conversationsCollection.doc(conversation.documentId).collection('messages').doc(message.messageId);
+    batch.set(messageRef, message.toFirestore());
+
+    batch.commit();
+  }
+
+  Future<void> markMessageRead({required String conversationId, required Message message}) async {
+    await _firestore.runTransaction((Transaction transaction) async {
+      var conversationRef = _conversationsCollection.doc(conversationId);
+      var messageRef = _conversationsCollection.doc(conversationId).collection('messages').doc(message.messageId);
+
+      var conversation = (await transaction.get(conversationRef)).data()!;
+      transaction.set(
+        messageRef,
+        <String, dynamic>{'read': true},
+        SetOptions(merge: true),
+      );
+      if (conversation.lastMessage.messageId == message.messageId) {
+        transaction.set(
+          conversationRef,
+          conversation.copyWith(lastMessage: message.copyWith(read: true)),
+          SetOptions(merge: true),
+        );
+      }
     });
   }
 }

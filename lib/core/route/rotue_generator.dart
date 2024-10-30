@@ -5,10 +5,12 @@ import 'package:todo/core/dependecy_injection.dart';
 import 'package:todo/core/utils/extensions.dart';
 import 'package:todo/core/utils/helper_widgets.dart';
 import 'package:todo/data/models/todo.dart';
+import 'package:todo/data/models/todo_user.dart';
 import 'package:todo/services/navigation_service.dart';
 import 'package:todo/ui/screens/add_collaborator_screen.dart';
 import 'package:todo/ui/screens/auth/forgot_password_screen.dart';
 import 'package:todo/ui/screens/auth/sign_up_screen.dart';
+import 'package:todo/ui/screens/conversation_screen.dart';
 import 'package:todo/ui/screens/todo_detail_screen.dart';
 
 class RouteGenerator {
@@ -36,6 +38,16 @@ class RouteGenerator {
           return MaterialPageRoute(
             builder: (context) => AddCollaboratorScreen(
               todo: args,
+            ),
+          );
+        } else {
+          return _errorRoute(settings);
+        }
+      case '/conversation':
+        if (args is TodoUser) {
+          return MaterialPageRoute(
+            builder: (context) => ConversationScreen(
+              otherUser: args,
             ),
           );
         } else {

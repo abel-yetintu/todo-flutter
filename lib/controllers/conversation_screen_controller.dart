@@ -19,15 +19,15 @@ import 'package:todo/services/storage_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
 
-final conversationScreenControllerProvider = NotifierProvider<ConversationScreenController, ConversationScreenState>(() {
+final conversationScreenControllerProvider = NotifierProvider.family<ConversationScreenController, ConversationScreenState, String>(() {
   return ConversationScreenController();
 });
 
-class ConversationScreenController extends Notifier<ConversationScreenState> {
+class ConversationScreenController extends FamilyNotifier<ConversationScreenState, String> {
   late StreamSubscription _messagesSubscription;
 
   @override
-  ConversationScreenState build() {
+  ConversationScreenState build(arg) {
     ref.onDispose(() {
       _messagesSubscription.cancel();
     });
@@ -38,11 +38,33 @@ class ConversationScreenController extends Notifier<ConversationScreenState> {
     _messagesSubscription = getIt<DatabaseService>().getMessages(conversationId: conversationId).listen(
       (messages) {
         state = state.copyWith(messages: AsyncData(messages));
+        _updateFilteredMessages(messages);
       },
       onError: (error, stackTrace) {
         state = state.copyWith(messages: AsyncError(error, stackTrace));
       },
     );
+  }
+
+  void showSearchBar(bool value) {
+    state = state.copyWith(isSearching: value);
+  }
+
+  void setSearchQuery(String searchQuery) {
+    state = state.copyWith(searchQuery: searchQuery);
+    _updateFilteredMessages(state.messages.value ?? []);
+  }
+
+  void _updateFilteredMessages(List<Message> messages) {
+    final filteredMessages = state.searchQuery.isNotEmpty
+        ? messages.where(
+            (message) {
+              return message.content.toLowerCase().contains(state.searchQuery.toLowerCase()) && message.type == MessageType.text;
+            },
+          ).toList()
+        : messages;
+
+    state = state.copyWith(filteredMessages: filteredMessages);
   }
 
   Future<void> sendMessage({

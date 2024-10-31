@@ -191,8 +191,10 @@ class DatabaseService {
       var conversationRef = _conversationsCollection.doc(conversationId);
       var messageRef = _conversationsCollection.doc(conversationId).collection('messages').doc(message.messageId);
 
-      var conversation = (await transaction.get(conversationRef)).data()!;
-      transaction.set(
+      var conversation = (await transaction.get(conversationRef)).data();
+
+      if (conversation != null) {
+        transaction.set(
         messageRef,
         <String, dynamic>{'read': true},
         SetOptions(merge: true),
@@ -204,6 +206,8 @@ class DatabaseService {
           SetOptions(merge: true),
         );
       }
+      }
+      
     });
   }
 }

@@ -10,6 +10,7 @@ import 'package:todo/core/enums/message_type.dart';
 import 'package:todo/core/utils/extensions.dart';
 import 'package:todo/core/utils/helper_functions.dart';
 import 'package:todo/core/utils/helper_widgets.dart';
+import 'package:todo/data/models/conversation_screen_state.dart';
 import 'package:todo/data/models/message.dart';
 import 'package:todo/data/models/todo_user.dart';
 import 'package:todo/providers/providers.dart';
@@ -30,14 +31,27 @@ class ConversationScreen extends ConsumerStatefulWidget {
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   late TextEditingController _messageTextEditingController;
+  late TextEditingController _searchTextEditingController;
   late RecorderController _audioRecorder;
 
   @override
   void initState() {
     super.initState();
     _messageTextEditingController = TextEditingController();
+    _searchTextEditingController = TextEditingController();
+    _searchTextEditingController.text = ref
+        .read(conversationScreenControllerProvider(
+          HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
+        ))
+        .searchQuery;
     _audioRecorder = RecorderController();
-    ref.read(conversationScreenControllerProvider.notifier).initMessagesStream(
+    ref
+        .read(
+          conversationScreenControllerProvider(
+            HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
+          ).notifier,
+        )
+        .initMessagesStream(
           conversationId: HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
         );
   }
@@ -45,15 +59,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   void dispose() {
     _messageTextEditingController.dispose();
+    _searchTextEditingController.dispose();
     _audioRecorder.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final conversationId = HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid);
     final otherUser = widget.otherUser;
-    final state = ref.watch(conversationScreenControllerProvider);
-    final controller = ref.read(conversationScreenControllerProvider.notifier);
+    final state = ref.watch(conversationScreenControllerProvider(conversationId));
+    final controller = ref.read(conversationScreenControllerProvider(conversationId).notifier);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -76,16 +92,74 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       },
                     ),
                   ),
-                  UserProfilePicture(user: otherUser),
-                  addHorizontalSpace(context.screenWidth * .03),
-                  Expanded(
-                    child: Text(
-                      otherUser.fullName,
-                      style: context.textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.bold, color: context.colorScheme.onPrimaryContainer),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+
+                  // show user detail or search bar
+                  if (!state.isSearching)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          UserProfilePicture(user: otherUser),
+                          addHorizontalSpace(context.screenWidth * .03),
+                          Expanded(
+                            child: Text(
+                              otherUser.fullName,
+                              style: context.textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.bold, color: context.colorScheme.onPrimaryContainer),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )
+                  if (state.isSearching)
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: context.screenWidth * .04),
+                        child: TextField(
+                          controller: _searchTextEditingController,
+                          decoration: InputDecoration(
+                            hintText: 'Search',
+                            filled: true,
+                            fillColor: Colors.transparent,
+                            suffixIcon: GestureDetector(
+                              onTap: () {
+                                _searchTextEditingController.clear();
+                                controller.showSearchBar(false);
+                                controller.setSearchQuery('');
+                              },
+                              child: const Icon(FontAwesomeIcons.x),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: context.screenWidth * .07, vertical: context.screenHeight * .02),
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: const UnderlineInputBorder(),
+                          ),
+                          onTapOutside: (event) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
+                          onChanged: (value) {
+                            controller.setSearchQuery(value);
+                          },
+                        ),
+                      ),
+                    ),
+                  if (!state.isSearching)
+                    Row(
+                      children: [
+                        addHorizontalSpace(context.screenWidth * .03),
+                        Padding(
+                          padding: EdgeInsets.only(right: context.screenWidth * .04),
+                          child: GestureDetector(
+                            onTap: () {
+                              controller.showSearchBar(true);
+                            },
+                            child: FaIcon(
+                              FontAwesomeIcons.magnifyingGlass,
+                              color: context.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -97,7 +171,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 child: state.messages.when(
                   loading: () => _loadingUI(),
                   error: (error, stackTrace) => _errorUI(error.toString()),
-                  data: (messages) => _messagesUI(messages),
+                  data: (_) => _messagesUI(state),
                 ),
               ),
             ),
@@ -207,8 +281,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     );
   }
 
-  Widget _messagesUI(List<Message> messages) {
-    if (messages.isEmpty) {
+  Widget _messagesUI(ConversationScreenState state) {
+    if (state.messages.value!.isEmpty) {
       return Expanded(
         child: Center(
           child: Text('Start a conversation with ${widget.otherUser.fullName}'),
@@ -218,7 +292,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     return Expanded(
       child: GroupedListView<Message, DateTime>(
         physics: const BouncingScrollPhysics(),
-        elements: messages,
+        elements: state.filteredMessages,
         reverse: true,
         order: GroupedListOrder.DESC,
         groupBy: (message) => DateTime(

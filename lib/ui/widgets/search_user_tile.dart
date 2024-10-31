@@ -4,6 +4,7 @@ import 'package:todo/core/dependecy_injection.dart';
 import 'package:todo/core/utils/extensions.dart';
 import 'package:todo/core/utils/helper_widgets.dart';
 import 'package:todo/data/models/todo_user.dart';
+import 'package:todo/providers/providers.dart';
 import 'package:todo/services/navigation_service.dart';
 import 'package:todo/ui/widgets/user_profile_picture.dart';
 
@@ -25,10 +26,12 @@ class SearchUserTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: () {
-        getIt<NavigationService>().routeTo(
-          '/conversation',
-          arguments: todoUser,
-        );
+        if (todoUser.userName != ref.read(todoUserProvider).value!.userName) {
+          getIt<NavigationService>().routeTo(
+            '/conversation',
+            arguments: todoUser,
+          );
+        }
       },
       child: Container(
         margin: EdgeInsets.only(bottom: context.screenHeight * .02),

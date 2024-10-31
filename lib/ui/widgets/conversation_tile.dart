@@ -102,6 +102,24 @@ class ConversationTile extends ConsumerWidget {
                             ],
                           ),
                         ),
+                      if (conversation.lastMessage.type == MessageType.audio)
+                        Expanded(
+                          child: Row(
+                            children: [
+                              FaIcon(
+                                FontAwesomeIcons.microphone,
+                                size: context.screenWidth * .04,
+                              ),
+                              addHorizontalSpace(context.screenWidth * .02),
+                              Text(
+                                "Audio",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.textTheme.labelSmall,
+                              ),
+                            ],
+                          ),
+                        ),
                       addHorizontalSpace(context.screenWidth * .03),
                       if (conversation.lastMessage.senderId == currentUser.uid)
                         conversation.lastMessage.read

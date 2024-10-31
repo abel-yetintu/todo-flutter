@@ -11,10 +11,12 @@ class StorageService {
 
   late final Reference _profilePicturesDirRef;
   late final Reference _imagesDirRef;
+  late final Reference _audiosDirRef;
 
   StorageService() {
     _profilePicturesDirRef = _storage.ref('images/profile_pictures');
     _imagesDirRef = _storage.ref('images/');
+    _audiosDirRef = _storage.ref('audios/');
   }
 
   Future<void> uploadProficePicture({required File file, required TodoUser todoUser}) async {
@@ -46,5 +48,11 @@ class StorageService {
     await uploadImageRef.putFile(file);
 
     return await uploadImageRef.getDownloadURL();
+  }
+
+  Future<String> uploadAudio({required File file}) async {
+    Reference uploadAudioRef = _audiosDirRef.child('${const Uuid().v4()}.aac');
+    await uploadAudioRef.putFile(file, SettableMetadata(contentType: 'audio/aac'));
+    return await uploadAudioRef.getDownloadURL();
   }
 }

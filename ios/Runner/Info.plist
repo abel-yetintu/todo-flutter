@@ -50,6 +50,6 @@
 	<key>NSCameraUsageDescription</Key>
 	<string>To take an image for profile picture</string>
 	<key>NSMicrophoneUsageDescription</Key>
-	<string>To record auido when taking video</string>
+	<string>To record auido when taking video or audio message</string>
 </dict>
 </plist>

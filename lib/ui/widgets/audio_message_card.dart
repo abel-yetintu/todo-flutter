@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:todo/controllers/audio_message_card_controller.dart';
 import 'package:todo/controllers/message_card_controller.dart';
 import 'package:todo/core/utils/extensions.dart';
 import 'package:todo/core/utils/helper_widgets.dart';
 import 'package:todo/data/models/message.dart';
 
-class MessageCard extends ConsumerWidget {
+class AudioMessageCard extends ConsumerWidget {
   final Message message;
   final String currentUserUid;
   final String conversationId;
-  const MessageCard({super.key, required this.message, required this.currentUserUid, required this.conversationId});
+  const AudioMessageCard({super.key, required this.message, required this.currentUserUid, required this.conversationId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,12 +37,26 @@ class MessageCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              message.content,
-              textAlign: TextAlign.start,
-              style: context.textTheme.bodyMedium!.copyWith(color: onBackground),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'audio',
+                  style: TextStyle(color: onBackground),
+                ),
+                addHorizontalSpace(context.screenWidth * .02),
+                GestureDetector(
+                  onTap: () {
+                    ref.read(audioMessageCardControllerProvider(message.messageId).notifier).onPlayOrPause(url: message.content);
+                  },
+                  child: FaIcon(
+                    ref.watch(audioMessageCardControllerProvider(message.messageId)) ? FontAwesomeIcons.stop : FontAwesomeIcons.play,
+                    size: context.screenWidth * .07,
+                    color: onBackground,
+                  ),
+                )
+              ],
             ),
-            addVerticalSpace(context.screenHeight * .005),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [

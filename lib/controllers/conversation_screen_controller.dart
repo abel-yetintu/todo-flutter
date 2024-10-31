@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:todo/core/dependecy_injection.dart';
 import 'package:todo/core/enums/message_type.dart';
 import 'package:todo/core/utils/helper_functions.dart';
@@ -14,6 +17,7 @@ import 'package:todo/services/database_service.dart';
 import 'package:todo/services/image_picker_service.dart';
 import 'package:todo/services/storage_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path/path.dart' as p;
 
 final conversationScreenControllerProvider = NotifierProvider<ConversationScreenController, ConversationScreenState>(() {
   return ConversationScreenController();
@@ -84,31 +88,67 @@ class ConversationScreenController extends Notifier<ConversationScreenState> {
         // save image in firebase storage
         final downloadUrl = await getIt<StorageService>().saveImage(file: file);
 
-        // create the message
-        final Message message = Message(
-          messageId: const Uuid().v4(),
-          senderId: currentUser.uid,
-          type: MessageType.image,
+        // send the message to conversation document
+        sendMessage(
+          conversationId: conversationId,
           content: downloadUrl,
-          read: false,
-          timestamp: DateTime.now(),
+          currentUser: currentUser,
+          otherUser: otherUser,
+          messageType: MessageType.image,
         );
-
-        // conversation where the message will be sent
-        final Conversation conversation = Conversation(
-          documentId: HelperFunctions.generateConversationDocumentId(uid1: currentUser.uid, uid2: otherUser.uid),
-          lastMessage: message,
-          participantsUid: [currentUser.uid, otherUser.uid],
-          participants: [currentUser, otherUser],
-        );
-
-        await getIt<DatabaseService>().sendMessage(conversation: conversation, message: message);
       }
     } on PlatformException catch (e) {
       HelperFunctions.showErrorSnackBar(message: 'Failed to Pick image: $e');
     } catch (e) {
       debugPrint(e.toString());
       HelperFunctions.showErrorSnackBar(message: 'Unkown error. Please try again later');
+    }
+  }
+
+  Future<void> audioButtonPress({
+    required RecorderController audioRecorder,
+    required String conversationId,
+    required TodoUser currentUser,
+    required TodoUser otherUser,
+  }) async {
+    try {
+      if (!state.isRecording) {
+        if (await audioRecorder.checkPermission()) {
+          state = state.copyWith(isRecording: true);
+
+          // get temp directory
+          final documentsDir = await getTemporaryDirectory();
+          final filePath = p.join(documentsDir.path, '${DateTime.now().millisecondsSinceEpoch.toString()}.wav');
+
+          // start recording
+          await audioRecorder.record(path: filePath, androidEncoder: AndroidEncoder.aac, iosEncoder: IosEncoder.kAudioFormatMPEG4AAC);
+        }
+      } else {
+        state = state.copyWith(isRecording: false);
+
+        // stop the recording and retrive the audio file path
+        String? filePath = await audioRecorder.stop();
+
+        if (filePath != null) {
+          File file = File(filePath);
+
+          // upload audio to firebase storage and retrive the download url
+          final downloadUrl = await getIt<StorageService>().uploadAudio(file: file);
+
+          // send the message to conversation document
+          sendMessage(
+            conversationId: conversationId,
+            currentUser: currentUser,
+            otherUser: otherUser,
+            content: downloadUrl,
+            messageType: MessageType.audio,
+          );
+        }
+      }
+    } catch (e) {
+      state = state.copyWith(isRecording: false);
+      debugPrint(e.toString());
+      HelperFunctions.showErrorSnackBar(message: e.toString());
     }
   }
 }

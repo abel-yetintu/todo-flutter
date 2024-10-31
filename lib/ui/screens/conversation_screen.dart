@@ -264,71 +264,63 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 
   Widget _loadingUI() {
-    return Expanded(
-      child: Center(
-        child: SpinKitThreeBounce(
-          color: context.colorScheme.tertiary,
-        ),
+    return Center(
+      child: SpinKitThreeBounce(
+        color: context.colorScheme.tertiary,
       ),
     );
   }
 
   Widget _errorUI(String error) {
-    return Expanded(
-      child: Center(
-        child: Text(error),
-      ),
+    return Center(
+      child: Text(error),
     );
   }
 
   Widget _messagesUI(ConversationScreenState state) {
     if (state.messages.value!.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Text('Start a conversation with ${widget.otherUser.fullName}'),
-        ),
+      return Center(
+        child: Text('Start a conversation with ${widget.otherUser.fullName}'),
       );
     }
-    return Expanded(
-      child: GroupedListView<Message, DateTime>(
-        physics: const BouncingScrollPhysics(),
-        elements: state.filteredMessages,
-        reverse: true,
-        order: GroupedListOrder.DESC,
-        groupBy: (message) => DateTime(
-          message.timestamp.year,
-          message.timestamp.month,
-          message.timestamp.day,
-        ),
-        groupHeaderBuilder: (message) {
-          return GroupHeaderCard(message: message);
-        },
-        itemBuilder: (context, message) {
-          switch (message.type) {
-            case MessageType.text:
-              return MessageCard(
-                conversationId: HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
-                message: message,
-                currentUserUid: ref.read(todoUserProvider).value!.uid,
-              );
-            case MessageType.image:
-              return ImageMessageCard(
-                conversationId: HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
-                message: message,
-                currentUserUid: ref.read(todoUserProvider).value!.uid,
-              );
-            case MessageType.audio:
-              return AudioMessageCard(
-                conversationId: HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
-                message: message,
-                currentUserUid: ref.read(todoUserProvider).value!.uid,
-              );
-          }
-        },
-        itemComparator: (message1, message2) {
-          return message1.timestamp.compareTo(message2.timestamp);
-        },
+    return GroupedListView<Message, DateTime>(
+      physics: const BouncingScrollPhysics(),
+      elements: state.filteredMessages,
+      reverse: true,
+      order: GroupedListOrder.DESC,
+      groupBy: (message) => DateTime(
+        message.timestamp.year,
+        message.timestamp.month,
+        message.timestamp.day,
       ),
+      groupHeaderBuilder: (message) {
+        return GroupHeaderCard(message: message);
+      },
+      itemBuilder: (context, message) {
+        switch (message.type) {
+          case MessageType.text:
+            return MessageCard(
+              conversationId: HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
+              message: message,
+              currentUserUid: ref.read(todoUserProvider).value!.uid,
+            );
+          case MessageType.image:
+            return ImageMessageCard(
+              conversationId: HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
+              message: message,
+              currentUserUid: ref.read(todoUserProvider).value!.uid,
+            );
+          case MessageType.audio:
+            return AudioMessageCard(
+              conversationId: HelperFunctions.generateConversationDocumentId(uid1: ref.read(todoUserProvider).value!.uid, uid2: widget.otherUser.uid),
+              message: message,
+              currentUserUid: ref.read(todoUserProvider).value!.uid,
+            );
+        }
+      },
+      itemComparator: (message1, message2) {
+        return message1.timestamp.compareTo(message2.timestamp);
+      },
     );
   }
 }

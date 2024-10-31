@@ -63,13 +63,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         Expanded(
           child: Padding(
             padding: EdgeInsets.fromLTRB(context.screenWidth * .05, context.screenHeight * .02, context.screenWidth * .05, 0),
-            child: Expanded(
-              child: Column(
-                children: [
-                  if (ref.watch(chatScreenControllerProvider).showChats) _chatUI(context),
-                  if (!ref.watch(chatScreenControllerProvider).showChats) _searchResultUI(context)
-                ],
-              ),
+            child: Column(
+              children: [
+                if (ref.watch(chatScreenControllerProvider).showChats) _chatUI(context),
+                if (!ref.watch(chatScreenControllerProvider).showChats) _searchResultUI(context)
+              ],
             ),
           ),
         ),
@@ -90,8 +88,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
             );
           },
-          error: (error, stackTrace) => Center(
-            child: Text(error.toString()),
+          error: (error, stackTrace) => Expanded(
+            child: Center(
+              child: Text(error.toString()),
+            ),
           ),
           data: (conversations) {
             if (conversations.isEmpty) {
@@ -128,8 +128,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
       },
       error: (error, stackTrace) {
-        return Center(
-          child: Text(error.toString()),
+        return Expanded(
+          child: Center(
+            child: Text(error.toString()),
+          ),
         );
       },
       data: (todoUsers) {

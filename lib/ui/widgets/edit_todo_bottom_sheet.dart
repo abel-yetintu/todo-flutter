@@ -164,12 +164,10 @@ class _EditTodoBSState extends ConsumerState<EditTodoBS> {
                           child: Container(
                             padding: EdgeInsets.symmetric(horizontal: context.screenWidth * .01, vertical: context.screenHeight * .01),
                             decoration: BoxDecoration(border: Border.all(width: 1, color: context.colorScheme.secondary)),
-                            child: Expanded(
-                              child: Text(
-                                todoToBeEdited.dueDate?.getMonthDay() ?? 'Not Selected',
-                                maxLines: 2,
-                                style: context.textTheme.bodySmall,
-                              ),
+                            child: Text(
+                              todoToBeEdited.dueDate?.getMonthDay() ?? 'Not Selected',
+                              maxLines: 2,
+                              style: context.textTheme.bodySmall,
                             ),
                           ),
                         ),
